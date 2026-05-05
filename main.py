@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 import argparse
+from prompts import system_prompt # type: ignore
 
 def main():
     load_dotenv()
@@ -21,7 +22,10 @@ def main():
 
 def generate_content(client, messages, args):
     response = client.models.generate_content(
-        model="gemini-2.5-flash", contents=messages)
+        model="gemini-2.5-flash", 
+        contents=messages,
+        config=types.GenerateContentConfig(system_instruction=system_prompt)
+    )
     if response.usage_metadata is None:
         raise RuntimeError("likely a failed API request")
     else:
