@@ -1,6 +1,9 @@
 import os
 import subprocess
+from google import genai
+from google.genai import types
 
+# Run Python File function
 def run_python_file(working_directory, file_path, args=None):
     working_dir_abs = os.path.abspath(working_directory)
     target_filepath = os.path.normpath(os.path.join(working_dir_abs, file_path))
@@ -13,7 +16,7 @@ def run_python_file(working_directory, file_path, args=None):
     if not file_path.endswith(".py"):
         return f'Error: "{file_path}" is not a Python file'
 
-# Run target file:
+    # Run target file
     try:
         command = ["python", target_filepath] 
         if args:
@@ -39,4 +42,23 @@ def run_python_file(working_directory, file_path, args=None):
     except FileNotFoundError:
         return f"Error: The executable was not found"
 
+# Run Python File declaration  
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description=f"Runs executable Python file",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Directory path to the target file",
+            ),
+            "args":types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING),
+                description="Any optional arguments added"
+            )
+        },
+    ),
+)
  

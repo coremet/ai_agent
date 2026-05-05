@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 import argparse
 from prompts import system_prompt # type: ignore
+from functions.call_function import available_functions # type: ignore
 
 def main():
     load_dotenv()
@@ -24,16 +25,24 @@ def generate_content(client, messages, args):
     response = client.models.generate_content(
         model="gemini-2.5-flash", 
         contents=messages,
-        config=types.GenerateContentConfig(system_instruction=system_prompt)
+        config=types.GenerateContentConfig(
+            tools=[available_functions],
+            system_instruction=system_prompt
+        )
     )
-    if response.usage_metadata is None:
-        raise RuntimeError("likely a failed API request")
+    if response.function_calls:
+        for function_call in response.function_calls:
+            print(f"Calling function: {function_call.name}({function_call.args})")
+
     else:
-        if args.verbose: 
-            print(f"User prompt: {args.user_prompt}") 
-            print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-            print(f"Response tokens: {response.usage_metadata.candidates_token_count}")    
-    print(response.text)
+        if response.usage_metadata is None:
+            raise RuntimeError("likely a failed API request")
+        else:
+            if args.verbose: 
+                print(f"User prompt: {args.user_prompt}") 
+                print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+                print(f"Response tokens: {response.usage_metadata.candidates_token_count}")    
+        print(response.text)
 
  # If another file imports your file as a module, __name__ is set to the filename instead, so main() won't run automatically. 
  # It's a guard that says "only run this if I'm the entry point, not being imported."
