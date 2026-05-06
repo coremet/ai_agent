@@ -5,6 +5,7 @@ from google.genai import types
 import argparse
 from prompts import system_prompt # type: ignore
 from functions.call_function import available_functions # type: ignore
+from functions.call_function import call_function # type: ignore
 
 def main():
     load_dotenv()
@@ -31,9 +32,19 @@ def generate_content(client, messages, args):
         )
     )
     if response.function_calls:
+        function_results = []
         for function_call in response.function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
-
+            function_call_result = call_function(function_call, args.verbose)
+            if not function_call_result.parts:
+                raise Exception("The types.Content object returned from call_function does not have a non-empty .parts list")
+            if not function_call_result.parts[0].function_response: 
+                raise Exception("The .function_response property of the first item in the list of parts is not a FunctionResponse object")
+            if not function_call_result.parts[0].function_response.response:
+                raise Exception("The actual function result is not present")
+            else:
+                function_results.append(function_call_result.parts[0])
+                if args.verbose:
+                    print(f"-> {function_call_result.parts[0].function_response.response}")
     else:
         if response.usage_metadata is None:
             raise RuntimeError("likely a failed API request")
