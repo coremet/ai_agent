@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -20,7 +21,12 @@ def main():
     args = parser.parse_args()
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
 
-    generate_content(client, messages, args)
+    for _ in range(20):
+        if generate_content(client, messages, args):
+            break
+    else:
+        sys.exit("Maximum number of iterations reached")
+
 
 def generate_content(client, messages, args):
     response = client.models.generate_content(
@@ -31,6 +37,9 @@ def generate_content(client, messages, args):
             system_instruction=system_prompt
         )
     )
+    if response.candidates:
+        for candidate in response.candidates:
+            messages.append(candidate.content)
     if response.function_calls:
         function_results = []
         for function_call in response.function_calls:
@@ -45,6 +54,7 @@ def generate_content(client, messages, args):
                 function_results.append(function_call_result.parts[0])
                 if args.verbose:
                     print(f"-> {function_call_result.parts[0].function_response.response}")
+        messages.append(types.Content(role="user", parts=function_results))
     else:
         if response.usage_metadata is None:
             raise RuntimeError("likely a failed API request")
@@ -54,6 +64,7 @@ def generate_content(client, messages, args):
                 print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
                 print(f"Response tokens: {response.usage_metadata.candidates_token_count}")    
         print(response.text)
+        return True
 
  # If another file imports your file as a module, __name__ is set to the filename instead, so main() won't run automatically. 
  # It's a guard that says "only run this if I'm the entry point, not being imported."
